@@ -1,0 +1,23 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# SQLite database (optional: exclude if large)
+database/qdarchive_metadata.db
+
+# Logs
+logs/
+
+# Downloads (large data files)
+data/
+
+# VSCode settings
+.vscode/
+#file so Git ignores these large files in the future.
+downloads/
+echo "downloads/" >> .gitignore
+echo "data/" >> .gitignore
+echo "logs/" >> .gitignore
+echo "__pycache__/" >> .gitignore
+echo "*.db" >> .gitignore
