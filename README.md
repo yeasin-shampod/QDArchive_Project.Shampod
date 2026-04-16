@@ -1,6 +1,6 @@
 # QDArchive Seeding Project — Part 1: Data Acquisition
 
-**Student:** Yeasin Shampod  
+**Student:** Yeasin Arafat Shampod  
 **Matriculation ID:** 23080363  
 **Supervisor:** Professor Dirk Riehle  
 **University:** Friedrich-Alexander-Universität Erlangen-Nürnberg (FAU)  
@@ -48,8 +48,8 @@ The Murray Research Archive is hosted on Harvard Dataverse, which has a well-doc
 # Install dependencies
 pip install -r requirements.txt
 
-# Run both scrapers (default: 200 projects each)
-python3 main.py --max-projects 200
+# Run both scrapers (default: 500 projects for IHSN, all 386 for Harvard Murray)
+python3 main.py --max-projects 500
 
 # Run only one repository
 python3 -c "from scrapers.ihsn_scraper import run; run(max_projects=200)"
@@ -89,14 +89,14 @@ The SQLite database (`23080363-seeding.db`) is located in the root of this repos
 
 | | IHSN | Harvard Murray | Total |
 |---|---|---|---|
-| **Projects** | 200 | 200 | 400 |
-| **Total files recorded** | 1,349 | 4,260 | 5,609 |
-| **Successfully downloaded** | 1,201 | 1,281 | 2,482 |
-| **Failed (login required)** | 57 | 2,979 | 3,036 |
-| **Failed (server issues)** | 91 | 0 | 91 |
-| **Keywords extracted** | ~3,454 | — | 3,454 |
-| **Person-role entries** | — | — | 1,107 |
-| **Disk usage** | 1.2 GB | 2.9 GB | ~4.1 GB |
+| **Projects** | 500 | 386 | 886 |
+| **Total files recorded** | 3,858 | 11,978 | 15,836 |
+| **Successfully downloaded** | 3,439 | 2,281 | 5,720 |
+| **Failed (login required)** | — | 9,769 | 9,769 |
+| **Failed (server issues)** | 347 | — | 347 |
+| **Keywords extracted** | 6,093 | — | 6,093 |
+| **Person-role entries** | — | — | 3,020 |
+| **Disk usage** | 3.0 GB | 4.6 GB | ~7.6 GB |
 
 ---
 
@@ -196,7 +196,7 @@ Neither repository has a reliable filter for "qualitative research" specifically
    ```
 3. Run the pipeline:
    ```bash
-   python3 main.py --max-projects 200
+   python3 main.py --max-projects 500
    ```
 4. Check the results:
    ```bash
