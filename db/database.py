@@ -1,5 +1,4 @@
 """Database initialization and utilities for QDArchive seeding."""
-
 import sqlite3
 import os
 from pathlib import Path
@@ -11,41 +10,26 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "..", "23080363-seeding.db")
 def get_connection():
     """Get a database connection."""
     conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row  # Return rows as dictionaries
+    conn.row_factory = sqlite3.Row
     return conn
 
 
 def init_db():
     """Initialize the database with schema from schema.sql."""
     schema_path = os.path.join(os.path.dirname(__file__), "schema.sql")
-    
     if not os.path.exists(schema_path):
         raise FileNotFoundError(f"Schema file not found at {schema_path}")
-    
+
     conn = get_connection()
     cursor = conn.cursor()
-    
-    # Read and execute schema
+
     with open(schema_path, "r") as f:
         schema = f.read()
-    
+
     cursor.executescript(schema)
     conn.commit()
     conn.close()
-    
     print(f"Database initialized at {DB_PATH}")
-
-
-def insert_repository(name, url):
-    """Insert a repository into the database."""
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO REPOSITORIES (name, url) VALUES (?, ?)",
-        (name, url)
-    )
-    conn.commit()
-    conn.close()
 
 
 def insert_project(conn, project_data):
@@ -121,16 +105,6 @@ def insert_license(conn, project_id, license_text):
         (project_id, license_text)
     )
     conn.commit()
-
-
-def get_repository_id(name):
-    """Get repository ID by name."""
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id FROM REPOSITORIES WHERE name = ?", (name,))
-    result = cursor.fetchone()
-    conn.close()
-    return result[0] if result else None
 
 
 def get_all_projects(repository_id=None):
