@@ -180,9 +180,11 @@ Some datasets on Harvard Dataverse contain very large files (hundreds of megabyt
 
 #### 10. No Standard Way to Identify "Qualitative" Data
 
-Neither repository has a reliable filter for "qualitative research" specifically. IHSN is primarily a survey and census metadata catalog — most of its holdings are quantitative microdata, and the directly downloadable files are metadata exports (JSON, DDI/XML) and PDF documentation (questionnaires, reports, technical documents). The actual microdata is almost always hosted externally and requires login. The Harvard Murray Research Archive, on the other hand, is a genuine qualitative research repository — it contains interview transcripts, psychological assessments, case studies, and longitudinal survey data. Out of 386 Murray datasets, I successfully downloaded 2,281 files, with the remaining 9,769 restricted behind access requests.
+Neither repository offers a straightforward way to filter specifically for qualitative research. IHSN is fundamentally a survey and census metadata catalog, so the bulk of its holdings lean quantitative. What I could actually download were metadata exports (JSON, DDI/XML) and PDF documentation such as questionnaires, technical reports, and codebooks — the underlying microdata is almost always hosted elsewhere and locked behind login walls.
 
-Since the professor assigned both repositories, I scraped broadly and downloaded everything available rather than trying to filter by methodology. The IHSN documentation files (questionnaires, interview guides, codebooks) are still valuable for qualitative research even if the underlying microdata is quantitative — they describe how data was collected, what questions were asked, and how studies were designed. The `query_string` field in the database records the search terms used for each project.
+The Harvard Murray Research Archive was a much better fit. It holds genuine qualitative material — interview transcripts, psychological assessments, case studies, and longitudinal survey data. I was able to download 2,281 files across 386 datasets, though another 9,769 files remain restricted behind formal access requests.
+
+Given that both repositories were assigned to me, I chose to scrape broadly and collect everything available rather than attempt to filter by methodology. Even the IHSN documentation has value for qualitative researchers — questionnaires and interview guides reveal how data was collected and what questions were asked, which is useful context regardless of whether the underlying dataset is quantitative. The `query_string` field in the database records which search terms were used for each project.
 
 ---
 
