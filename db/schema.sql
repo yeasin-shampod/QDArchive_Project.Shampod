@@ -1,12 +1,6 @@
 -- Schema for QDArchive Seeding Database
 -- Student ID: 23080363
 
-CREATE TABLE IF NOT EXISTS REPOSITORIES (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    url TEXT NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS PROJECTS (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     query_string TEXT,
@@ -23,8 +17,7 @@ CREATE TABLE IF NOT EXISTS PROJECTS (
     download_repository_folder TEXT,
     download_project_folder TEXT,
     download_version_folder TEXT,
-    download_method TEXT CHECK(download_method IN ('SCRAPING', 'API-CALL')),
-    FOREIGN KEY (repository_id) REFERENCES REPOSITORIES(id)
+    download_method TEXT CHECK(download_method IN ('SCRAPING', 'API-CALL'))
 );
 
 CREATE TABLE IF NOT EXISTS FILES (
@@ -57,7 +50,3 @@ CREATE TABLE IF NOT EXISTS LICENSES (
     license TEXT,
     FOREIGN KEY (project_id) REFERENCES PROJECTS(id)
 );
-
--- Seed the REPOSITORIES table
-INSERT OR IGNORE INTO REPOSITORIES (id, name, url) VALUES (1, 'ihsn', 'https://ihsn.org/');
-INSERT OR IGNORE INTO REPOSITORIES (id, name, url) VALUES (2, 'harvard-murray-archive', 'https://www.murray.harvard.edu/');
