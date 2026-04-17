@@ -66,11 +66,10 @@ python3 scripts/retry_failed.py
 
 ### Database Schema
 
-The SQLite database (`23080363-seeding.db`) is located in the root of this repository and contains six tables:
+The SQLite database (`23080363-seeding.db`) is located in the root of this repository and contains five tables:
 
 | Table | Purpose |
 |-------|---------|
-| `REPOSITORIES` | The two source repositories (IHSN and Harvard Murray) |
 | `PROJECTS` | One row per research project/dataset, with title, description, DOI, language, and download metadata |
 | `FILES` | Every file we attempted to download, with its status (succeeded or why it failed) |
 | `KEYWORDS` | Subject keywords and topics extracted from project metadata |
