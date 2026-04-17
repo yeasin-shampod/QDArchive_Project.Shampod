@@ -180,7 +180,9 @@ Some datasets on Harvard Dataverse contain very large files (hundreds of megabyt
 
 #### 10. No Standard Way to Identify "Qualitative" Data
 
-Neither repository has a reliable filter for "qualitative research" specifically. IHSN is mostly survey/census data (quantitative), and the Murray Archive mixes qualitative and quantitative studies. The `query_string` field in the database records what search terms were used, but in practice I scraped broadly and included everything available rather than trying to filter by methodology — since the project goal is to seed the archive with as much data as possible.
+Neither repository has a reliable filter for "qualitative research" specifically. IHSN is primarily a survey and census metadata catalog — most of its holdings are quantitative microdata, and the directly downloadable files are metadata exports (JSON, DDI/XML) and PDF documentation (questionnaires, reports, technical documents). The actual microdata is almost always hosted externally and requires login. The Harvard Murray Research Archive, on the other hand, is a genuine qualitative research repository — it contains interview transcripts, psychological assessments, case studies, and longitudinal survey data. Out of 386 Murray datasets, I successfully downloaded 2,281 files, with the remaining 9,769 restricted behind access requests.
+
+Since the professor assigned both repositories, I scraped broadly and downloaded everything available rather than trying to filter by methodology. The IHSN documentation files (questionnaires, interview guides, codebooks) are still valuable for qualitative research even if the underlying microdata is quantitative — they describe how data was collected, what questions were asked, and how studies were designed. The `query_string` field in the database records the search terms used for each project.
 
 ---
 
