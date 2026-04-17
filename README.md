@@ -176,7 +176,7 @@ Both repositories occasionally return 500 errors or simply time out, especially 
 
 #### 9. File Size Concerns
 
-Some datasets on Harvard Dataverse contain very large files (hundreds of megabytes each). To keep the download manageable and avoid filling up disk space, I set a 500 MB per-file limit. Files exceeding this limit are recorded as `FAILED_TOO_LARGE` in the database. In practice, no files hit this limit during our 200-project run, but the safeguard is there.
+Some datasets on Harvard Dataverse contain very large files (hundreds of megabytes each). To keep the download manageable and avoid filling up disk space, I set a 500 MB per-file limit. Files exceeding this limit are recorded as `FAILED_TOO_LARGE` in the database. In practice, no files hit this limit during the full scraping run, but the safeguard is there.
 
 #### 10. No Standard Way to Identify "Qualitative" Data
 
