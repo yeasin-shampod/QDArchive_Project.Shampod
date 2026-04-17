@@ -147,7 +147,7 @@ IHSN is primarily a metadata catalog, not a data hosting platform. The vast majo
 
 #### 3. Harvard Dataverse — Massive Number of Restricted Files
 
-The Murray Research Archive contains a lot of sensitive social science data (psychological studies, longitudinal surveys, clinical research). Out of 4,260 files across 200 datasets, nearly 70% (2,979 files) are restricted and require a formal access request through Harvard Dataverse. There is no way to download these programmatically — you have to apply for access through the web interface and wait for approval. This is by design, not a bug. I logged every restricted file with `FAILED_LOGIN_REQUIRED` so the database accurately reflects what exists even if we couldn't download it.
+The Murray Research Archive contains a lot of sensitive social science data (psychological studies, longitudinal surveys, clinical research). Out of 11,978 files across 386 datasets, over 80% (9,769 files) are restricted and require a formal access request through Harvard Dataverse. There is no way to download these programmatically — you have to apply for access through the web interface and wait for approval. This is by design, not a bug. I logged every restricted file with `FAILED_LOGIN_REQUIRED` so the database accurately reflects what exists even if we couldn't download it.
 
 #### 4. Inconsistent Metadata Across Repositories
 
