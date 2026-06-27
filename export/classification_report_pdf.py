@@ -15,17 +15,23 @@ import os
 import sqlite3
 import textwrap
 from collections import Counter
-from datetime import datetime
 
 import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 from matplotlib.backends.backend_pdf import PdfPages
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_DB = os.path.join(ROOT, "23080363-sq26-classification.db")
 DEFAULT_OUT = os.path.join(ROOT, "23080363-sq26-classification-report.pdf")
+
+# Optional cover assets. Drop the university logo here and it is embedded on the
+# title page automatically; if the file is absent the report still builds.
+LOGO_PATH = os.path.join(ROOT, "assets", "university-logo.png")
+UNIVERSITY = "Friedrich-Alexander-Universit\u00e4t Erlangen-N\u00fcrnberg"
+COURSE = ""   # optional module / course name shown under the university
 
 TOP_N = 20
 
@@ -134,15 +140,38 @@ def _wrap(label, width=48):
 # ---------------------------------------------------------------------------
 # Page builders
 # ---------------------------------------------------------------------------
+def _draw_logo(fig):
+    """Embed the university logo at the top of the cover, if available."""
+    if not os.path.exists(LOGO_PATH):
+        return
+    try:
+        img = mpimg.imread(LOGO_PATH)
+    except Exception:
+        return
+    ih, iw = img.shape[0], img.shape[1]
+    aspect = iw / ih
+    h = 0.13                                   # logo height (figure fraction)
+    w = h * aspect * (8.27 / 11.69)            # preserve aspect on A4 landscape
+    w = min(w, 0.34)
+    ax = fig.add_axes([0.5 - w / 2, 0.82, w, h])
+    ax.imshow(img)
+    ax.axis("off")
+
+
 def _title_page(pdf, conn):
     fig = plt.figure(figsize=(11.69, 8.27))   # A4 landscape
     fig.patch.set_facecolor("white")
 
-    fig.text(0.5, 0.74, "QDArchive Seeding \u2014 Part 2", ha="center",
-             fontsize=28, fontweight="bold", color="#1B2A4A")
-    fig.text(0.5, 0.675, "Data Classification Report", ha="center",
-             fontsize=17, color="#4B7BEC")
-    fig.add_artist(plt.Line2D([0.30, 0.70], [0.635, 0.635],
+    _draw_logo(fig)
+    fig.text(0.5, 0.785, UNIVERSITY, ha="center", fontsize=13, color="#1B2A4A")
+    if COURSE:
+        fig.text(0.5, 0.752, COURSE, ha="center", fontsize=11, color="#555555")
+
+    fig.text(0.5, 0.655, "QDArchive Seeding \u2014 Part 2", ha="center",
+             fontsize=27, fontweight="bold", color="#1B2A4A")
+    fig.text(0.5, 0.595, "Data Classification Report", ha="center",
+             fontsize=16, color="#4B7BEC")
+    fig.add_artist(plt.Line2D([0.30, 0.70], [0.560, 0.560],
                               transform=fig.transFigure,
                               color="#4B7BEC", linewidth=1.2))
 
@@ -154,25 +183,21 @@ def _title_page(pdf, conn):
     n_repos = len(_repositories(conn))
 
     rows = [
-        ("Student", "Yeasin Arafat Shampod (23080363)"),
+        ("Student", "Yeasin Arafat Shampod"),
+        ("Matriculation number", "23080363"),
         ("Taxonomy", "ISIC Rev. 5 \u2014 section + division"),
         ("Repositories", str(n_repos)),
         ("Projects in database", str(total)),
         ("Projects with an ISIC class", str(classified)),
         ("Primary files classified", str(files)),
-        ("Generated", f"{datetime.now():%d %B %Y, %H:%M}"),
     ]
-    y = 0.55
+    y = 0.475
     for label, value in rows:
         fig.text(0.31, y, label, ha="left", fontsize=12, color="#555555")
         fig.text(0.69, y, value, ha="right", fontsize=12, fontweight="bold",
                  color="#1B2A4A")
-        y -= 0.052
+        y -= 0.050
 
-    fig.text(0.5, 0.07,
-             "Produced with matplotlib \u2014 every chart is vector graphics "
-             "and can be zoomed in without loss of quality.",
-             ha="center", fontsize=9, color="#888888")
     pdf.savefig(fig)
     plt.close(fig)
 
