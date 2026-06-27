@@ -13,6 +13,7 @@ true **vector** graphics and can be zoomed in without quality loss.
 
 import os
 import sqlite3
+import textwrap
 from collections import Counter
 from datetime import datetime
 
@@ -135,47 +136,78 @@ def _wrap(label, width=48):
 # ---------------------------------------------------------------------------
 def _title_page(pdf, conn):
     fig = plt.figure(figsize=(11.69, 8.27))   # A4 landscape
-    fig.text(0.5, 0.66, "QDArchive Seeding \u2014 Part 2", ha="center",
-             fontsize=26, fontweight="bold")
-    fig.text(0.5, 0.58, "Data Classification Report", ha="center", fontsize=18)
+    fig.patch.set_facecolor("white")
+
+    fig.text(0.5, 0.74, "QDArchive Seeding \u2014 Part 2", ha="center",
+             fontsize=28, fontweight="bold", color="#1B2A4A")
+    fig.text(0.5, 0.675, "Data Classification Report", ha="center",
+             fontsize=17, color="#4B7BEC")
+    fig.add_artist(plt.Line2D([0.30, 0.70], [0.635, 0.635],
+                              transform=fig.transFigure,
+                              color="#4B7BEC", linewidth=1.2))
+
     total = conn.execute("SELECT COUNT(*) FROM PROJECT_CLASSES").fetchone()[0]
     classified = conn.execute(
         "SELECT COUNT(*) FROM PROJECT_CLASSES WHERE primary_class IS NOT NULL"
     ).fetchone()[0]
-    lines = [
-        "Student: Yeasin Arafat Shampod  (23080363)",
-        "Classification taxonomy: ISIC Rev. 5 (section + division)",
-        f"Projects in database: {total}",
-        f"Projects with an ISIC class: {classified}",
-        f"Generated: {datetime.now():%Y-%m-%d %H:%M}",
+    files = conn.execute("SELECT COUNT(*) FROM FILE_CLASSES").fetchone()[0]
+    n_repos = len(_repositories(conn))
+
+    rows = [
+        ("Student", "Yeasin Arafat Shampod (23080363)"),
+        ("Taxonomy", "ISIC Rev. 5 \u2014 section + division"),
+        ("Repositories", str(n_repos)),
+        ("Projects in database", str(total)),
+        ("Projects with an ISIC class", str(classified)),
+        ("Primary files classified", str(files)),
+        ("Generated", f"{datetime.now():%d %B %Y, %H:%M}"),
     ]
-    fig.text(0.5, 0.42, "\n".join(lines), ha="center", fontsize=12, linespacing=1.8)
+    y = 0.55
+    for label, value in rows:
+        fig.text(0.31, y, label, ha="left", fontsize=12, color="#555555")
+        fig.text(0.69, y, value, ha="right", fontsize=12, fontweight="bold",
+                 color="#1B2A4A")
+        y -= 0.052
+
+    fig.text(0.5, 0.07,
+             "Produced with matplotlib \u2014 every chart is vector graphics "
+             "and can be zoomed in without loss of quality.",
+             ha="center", fontsize=9, color="#888888")
     pdf.savefig(fig)
     plt.close(fig)
 
 
 def _histogram_page(pdf, repo_name, counts):
     items = counts.most_common()
+    total = sum(counts.values())
     labels = [_wrap(name) for name, _ in items]
     values = [c for _, c in items]
 
-    height = max(4.5, 0.42 * len(items) + 2.5)
+    height = max(4.5, 0.46 * len(items) + 2.6)
     fig, ax = plt.subplots(figsize=(11.69, height))
     y = range(len(items))
-    bars = ax.barh(list(y), values, color="#4B7BEC")
+    bars = ax.barh(list(y), values, color="#4B7BEC",
+                   edgecolor="#2E5BBA", linewidth=0.6)
     ax.set_yticks(list(y))
-    ax.set_yticklabels(labels, fontsize=8)
+    ax.set_yticklabels(labels, fontsize=8.5)
     ax.invert_yaxis()                      # most common on top
-    ax.set_xlabel("Number of projects (primary class)")
-    ax.set_title(f"{repo_name} \u2014 Histogram of primary ISIC classes",
-                 fontsize=14, fontweight="bold")
+    ax.set_xlabel("Number of projects (primary ISIC class)", fontsize=10)
+    ax.set_title(f"{repo_name}\nHistogram of primary ISIC classes "
+                 f"({total} classified projects)",
+                 fontsize=13, fontweight="bold", color="#1B2A4A")
+    ax.xaxis.grid(True, linestyle=":", linewidth=0.6, color="#CCCCCC")
+    ax.set_axisbelow(True)
+    for spine in ("top", "right"):
+        ax.spines[spine].set_visible(False)
 
     xmax = max(values) if values else 1
     for bar, value in zip(bars, values):
-        ax.text(bar.get_width() + xmax * 0.01,
+        pct = value / total * 100 if total else 0
+        ax.text(bar.get_width() + xmax * 0.012,
                 bar.get_y() + bar.get_height() / 2,
-                str(value), va="center", ha="left", fontsize=8, fontweight="bold")
-    ax.set_xlim(0, xmax * 1.12)
+                f"{value}  ({pct:.1f}%)", va="center", ha="left",
+                fontsize=8.5, fontweight="bold", color="#1B2A4A")
+    ax.set_xlim(0, xmax * 1.20)
     ax.margins(y=0.01)
     fig.tight_layout()
     pdf.savefig(fig)
@@ -187,27 +219,33 @@ def _table_page(pdf, repo_name, counts, type_counts):
     total = sum(counts.values())
 
     fig = plt.figure(figsize=(11.69, 8.27))
-    fig.suptitle(f"{repo_name} \u2014 Rank-ordered primary classes (top {TOP_N})",
-                 fontsize=14, fontweight="bold", y=0.97)
+    fig.text(0.5, 0.955, repo_name, ha="center", fontsize=15,
+             fontweight="bold", color="#1B2A4A")
+    fig.text(0.5, 0.915, f"Rank-ordered primary ISIC classes (top {TOP_N})",
+             ha="center", fontsize=12, color="#4B7BEC")
 
-    # project-type summary line
-    summary = "   ".join(
-        f"{t}: {type_counts.get(t, 0)}"
+    summary = "     ".join(
+        f"{t.replace('_PROJECT', '')}: {type_counts.get(t, 0)}"
         for t in ("QDA_PROJECT", "QD_PROJECT", "OTHER_PROJECT", "NOT_A_PROJECT")
     )
-    fig.text(0.5, 0.91, f"Project types \u2014 {summary}", ha="center", fontsize=10)
+    fig.text(0.5, 0.875, f"Project types  \u2014  {summary}",
+             ha="center", fontsize=10, color="#555555")
 
-    ax = fig.add_axes([0.06, 0.08, 0.88, 0.78])
+    ax = fig.add_axes([0.06, 0.06, 0.88, 0.78])
     ax.axis("off")
 
-    table_data = [["Rank", "ISIC Rev. 5 class (division)", "Count", "Share"]]
+    table_data = [["Rank", "ISIC Rev. 5 class", "Count", "Share", "Cumulative"]]
+    cum = 0
     for rank, (name, count) in enumerate(items, start=1):
+        cum += count
         share = f"{(count / total * 100):.1f}%" if total else "0%"
-        table_data.append([str(rank), name, str(count), share])
+        cums = f"{(cum / total * 100):.1f}%" if total else "0%"
+        table_data.append([str(rank), name, str(count), share, cums])
     if not items:
-        table_data.append(["\u2014", "No classified projects", "0", "0%"])
+        table_data.append(["\u2014", "No classified projects", "0", "0%", "0%"])
 
-    table = ax.table(cellText=table_data, colWidths=[0.07, 0.66, 0.12, 0.12],
+    table = ax.table(cellText=table_data,
+                     colWidths=[0.07, 0.58, 0.10, 0.11, 0.14],
                      cellLoc="left", loc="upper center")
     table.auto_set_font_size(False)
     table.set_fontsize(9)
@@ -217,43 +255,113 @@ def _table_page(pdf, repo_name, counts, type_counts):
             cell.set_facecolor("#4B7BEC")
             cell.set_text_props(color="white", fontweight="bold")
         elif r % 2 == 0:
-            cell.set_facecolor("#F0F4FF")
-        cell.set_edgecolor("#CCCCCC")
+            cell.set_facecolor("#EEF3FF")
+        cell.set_edgecolor("#D5DEF2")
+        if c >= 2:
+            cell.get_text().set_ha("center")
 
+    fig.text(0.06, 0.04,
+             f"Total classified projects in this repository: {total}.",
+             ha="left", fontsize=9, color="#888888")
     pdf.savefig(fig)
     plt.close(fig)
 
 
-def _comment_page(pdf, repo_name, counts, type_counts):
+def _narrative(repo_name, counts, type_counts):
+    """Build a short, natural-language discussion of the repository's results."""
     total = sum(counts.values())
-    dominant = counts.most_common(1)
-    dominant_txt = (
-        f"{dominant[0][0]} ({dominant[0][1]} projects, "
-        f"{dominant[0][1] / total * 100:.0f}% of classified projects)"
-        if dominant and total else "n/a"
-    )
-    n_classes = len(counts)
+    short = repo_name.split(" (")[0]
 
+    if total == 0:
+        return [
+            f"No projects in the {short} repository were eligible for ISIC "
+            "classification: none were QDA or QD projects with derivable subject "
+            "content, so the histogram and ranking above are empty by design."
+        ]
+
+    ranked = counts.most_common()
+    n_classes = len(ranked)
+    (c1n, c1) = ranked[0]
+    p1 = c1 / total * 100
+
+    paras = [
+        f"Across the {total} classifiable projects in the {short} repository, "
+        f"\u201c{c1n}\u201d is clearly the leading subject area, covering {c1} "
+        f"projects ({p1:.0f}% of the collection)."
+    ]
+
+    if n_classes >= 3:
+        (c2n, c2), (c3n, c3) = ranked[1], ranked[2]
+        p2, p3 = c2 / total * 100, c3 / total * 100
+        top3 = (c1 + c2 + c3) / total * 100
+        paras.append(
+            f"It is followed, at a clear distance, by \u201c{c2n}\u201d "
+            f"({c2} projects, {p2:.0f}%) and \u201c{c3n}\u201d ({c3}, {p3:.0f}%). "
+            f"Together these three leading classes account for {top3:.0f}% of the "
+            "repository\u2019s classified projects."
+        )
+    elif n_classes == 2:
+        (c2n, c2) = ranked[1]
+        p2 = c2 / total * 100
+        paras.append(
+            f"The only other class present is \u201c{c2n}\u201d "
+            f"({c2} projects, {p2:.0f}%)."
+        )
+
+    if p1 >= 60:
+        concentration = "highly concentrated"
+    elif p1 >= 35:
+        concentration = "moderately concentrated"
+    else:
+        concentration = "fairly diverse"
+    tail = sum(1 for _, c in ranked if c <= 2)
+    spread = (
+        f"In total {n_classes} distinct ISIC Rev. 5 divisions are represented, "
+        f"which makes this a {concentration} collection."
+    )
+    if tail:
+        spread += (
+            f" {tail} of those divisions appear only once or twice and form a "
+            "long tail of niche topics."
+        )
+    paras.append(spread)
+
+    qda = type_counts.get("QDA_PROJECT", 0)
+    qd = type_counts.get("QD_PROJECT", 0)
+    other = type_counts.get("OTHER_PROJECT", 0)
+    nap = type_counts.get("NOT_A_PROJECT", 0)
+    other_word = "project" if other == 1 else "projects"
+    nap_word = "entry" if nap == 1 else "entries"
+    paras.append(
+        f"By project type the repository holds {qd} QD and {qda} QDA projects "
+        f"(only these two types are classified), alongside {other} other-data "
+        f"{other_word} and {nap} {nap_word} with no derivable project files. "
+        "Each subject was assigned with a keyword-scoring classifier that maps a "
+        "project\u2019s title, description and keywords onto the official ISIC "
+        "Rev. 5 divisions, giving the title the greatest weight because it most "
+        "reliably names the subject of the data."
+    )
+    return paras
+
+
+def _comment_page(pdf, repo_name, counts, type_counts):
     fig = plt.figure(figsize=(11.69, 8.27))
-    fig.suptitle(f"{repo_name} \u2014 Comments on findings",
-                 fontsize=14, fontweight="bold", y=0.95)
+    fig.text(0.5, 0.95, repo_name, ha="center", fontsize=15,
+             fontweight="bold", color="#1B2A4A")
+    fig.text(0.5, 0.91, "Discussion of findings", ha="center",
+             fontsize=12, color="#4B7BEC")
+    fig.add_artist(plt.Line2D([0.08, 0.92], [0.885, 0.885],
+                              transform=fig.transFigure,
+                              color="#D5DEF2", linewidth=1.0))
 
-    comment = (
-        f"\u2022 The dominant primary class is: {dominant_txt}.\n\n"
-        f"\u2022 In total {n_classes} distinct ISIC Rev. 5 divisions were "
-        f"identified across the classified projects of this repository.\n\n"
-        f"\u2022 Project-type breakdown: "
-        + ", ".join(f"{t} = {type_counts.get(t, 0)}"
-                    for t in ("QDA_PROJECT", "QD_PROJECT",
-                              "OTHER_PROJECT", "NOT_A_PROJECT"))
-        + ".\n\n"
-        "\u2022 The classification is produced by a transparent keyword-scoring "
-        "heuristic over each project's title, description and keywords, mapped "
-        "to the official ISIC Rev. 5 divisions. The distribution reflects the "
-        "subject focus of the repository's holdings."
-    )
-    fig.text(0.08, 0.78, comment, ha="left", va="top", fontsize=11,
-             wrap=True, linespacing=1.6)
+    y = 0.83
+    for para in _narrative(repo_name, counts, type_counts):
+        wrapped = textwrap.fill(para, width=108)
+        fig.text(0.08, y, wrapped, ha="left", va="top", fontsize=11.5,
+                 linespacing=1.5, color="#222222")
+        n_lines = wrapped.count("\n") + 1
+        y -= 0.040 * n_lines + 0.035
+
     pdf.savefig(fig)
     plt.close(fig)
 
