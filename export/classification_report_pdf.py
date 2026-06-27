@@ -29,8 +29,56 @@ DEFAULT_OUT = os.path.join(ROOT, "23080363-sq26-classification-report.pdf")
 TOP_N = 20
 
 
+def _table_exists(conn, name):
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)
+    ).fetchone()
+    return row is not None
+
+
+def _repo_name_from_url(url):
+    """Derive a readable repository name from its base URL."""
+    if not url:
+        return None
+    host = url.split("//", 1)[-1].strip("/").lower()
+    if host.startswith("www."):
+        host = host[4:]
+    if "ihsn" in host:
+        return "IHSN Survey Catalog (ihsn.org)"
+    if "murray" in host or "harvard" in host:
+        return "Harvard Murray Research Archive (murray.harvard.edu)"
+    return host or None
+
+
 def _repositories(conn):
-    return conn.execute("SELECT id, name FROM REPOSITORIES ORDER BY id").fetchall()
+    """Return ``[(repository_id, name), ...]`` for every repository.
+
+    The classification database is derived from the Part 1 seeding database,
+    which stores the repository only as ``PROJECTS.repository_id`` (the separate
+    ``REPOSITORIES`` table was removed for validator compliance). The list is
+    therefore derived from the projects themselves; a legacy ``REPOSITORIES``
+    table is still honoured when present.
+    """
+    if _table_exists(conn, "REPOSITORIES"):
+        rows = conn.execute(
+            "SELECT id, name FROM REPOSITORIES ORDER BY id"
+        ).fetchall()
+        return [{"id": r["id"], "name": r["name"]} for r in rows]
+
+    rows = conn.execute(
+        """
+        SELECT repository_id AS rid, MIN(repository_url) AS url
+        FROM PROJECTS
+        GROUP BY repository_id
+        ORDER BY repository_id
+        """
+    ).fetchall()
+    result = []
+    for r in rows:
+        rid = r["rid"]
+        name = _repo_name_from_url(r["url"]) or f"Repository {rid}"
+        result.append({"id": rid, "name": name})
+    return result
 
 
 def _primary_class_counts(conn, repository_id):

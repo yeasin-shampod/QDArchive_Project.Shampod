@@ -175,7 +175,7 @@ def run(verbose=True):
 
         # ---- Step 3: ISIC classification (QDA + QD only) --------------
         if project_type in CLASSIFIABLE_TYPES:
-            cls = isic.classify_text(pooled)
+            cls = isic.classify_text(pooled, title=project["title"])
             tags = _make_tags(pooled, cls)
             cur.execute(
                 """
@@ -200,7 +200,7 @@ def run(verbose=True):
                 if file_role(f["file_name"], f["file_type"]) != "PRIMARY":
                     continue
                 file_text = " ".join([f["file_name"] or "", pooled])
-                fcls = isic.classify_text(file_text)
+                fcls = isic.classify_text(file_text, title=project["title"])
                 cur.execute(
                     """
                     INSERT INTO FILE_CLASSES (

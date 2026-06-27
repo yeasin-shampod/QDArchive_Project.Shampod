@@ -190,6 +190,33 @@ DIVISION_KEYWORDS = {
            "diplomatic"],
 }
 
+# ---------------------------------------------------------------------------
+# Decisive title rules
+# ---------------------------------------------------------------------------
+# Some titles unambiguously identify the *subject* of a dataset and should
+# dominate incidental keywords found in the description. Each rule grants a
+# strong score to a division when its ``pattern`` matches the (lowercased)
+# title and its optional ``exclude`` pattern does not.
+TITLE_RULES = [
+    # A general population / housing census (and IPUMS census subsets) is a
+    # government statistical activity -> Public administration (84). Excluded
+    # when the title points to a sector-specific census (e.g. agriculture or
+    # an economic / business census), which is handled by keyword scoring.
+    {
+        "pattern": re.compile(
+            r"\b(census|ipums|population and housing|housing and population|"
+            r"population and dwelling|demographic census)\b"
+        ),
+        "exclude": re.compile(
+            r"\b(agricultur|economic census|business census|enterprise census|"
+            r"establishment census|industrial census)\b"
+        ),
+        "division": "84",
+        "weight": 60,
+    },
+]
+
+
 # Build a quick lookup from section letter -> representative division so we can
 # fall back to a division when only a broad section can be inferred.
 _SECTION_FALLBACK_DIVISION = {
@@ -222,36 +249,57 @@ def _title_overlap_scores(text):
     return scores
 
 
-def score_divisions(text):
-    """Return a sorted ``[(division_code, score), ...]`` for *text* (best first)."""
+def score_divisions(text, title=None):
+    """Return a sorted ``[(division_code, score), ...]`` for *text* (best first).
+
+    When *title* is supplied, keyword hits in the title are weighted more
+    heavily than hits in the body text (the title is a stronger subject
+    signal), and the decisive :data:`TITLE_RULES` are applied.
+    """
     text = _normalize(text)
-    if not text:
+    title_n = _normalize(title) if title else ""
+    if not text and not title_n:
         return []
     scores = {}
     for code, keywords in DIVISION_KEYWORDS.items():
-        hits = 0
+        body_hits = 0
+        title_hits = 0
         for kw in keywords:
             if kw in text:
-                hits += 1
-        if hits:
-            scores[code] = hits * 10          # curated keywords weighted highly
+                body_hits += 1
+            if title_n and kw in title_n:
+                title_hits += 1
+        score = body_hits * 10 + title_hits * 20   # title signal weighted higher
+        if score:
+            scores[code] = score
+
+    # Decisive title rules (strong, unambiguous subject indicators).
+    if title_n:
+        for rule in TITLE_RULES:
+            if rule["pattern"].search(title_n) and not (
+                rule.get("exclude") and rule["exclude"].search(title_n)
+            ):
+                code = rule["division"]
+                scores[code] = scores.get(code, 0) + rule["weight"]
 
     # Blend in (lightly weighted) title-overlap signal.
-    for code, overlap in _title_overlap_scores(text).items():
+    overlap_text = (text + " " + title_n).strip()
+    for code, overlap in _title_overlap_scores(overlap_text).items():
         scores[code] = scores.get(code, 0) + overlap
 
     return sorted(scores.items(), key=lambda kv: (-kv[1], DIVISION_ORDER.index(kv[0])))
 
 
-def classify_text(text):
+def classify_text(text, title=None):
     """Classify pooled text into primary / secondary ISIC divisions.
 
-    Returns a dict with ``primary_division``, ``primary_class`` (full name),
-    ``primary_section``, ``secondary_division``, ``secondary_class``,
-    ``secondary_section`` and ``score`` (primary score). Secondary fields are
-    ``None`` when no clear second class exists.
+    *title*, when given, is scored more heavily than the body text and drives
+    the decisive :data:`TITLE_RULES`. Returns a dict with ``primary_division``,
+    ``primary_class`` (full name), ``primary_section``, ``secondary_division``,
+    ``secondary_class``, ``secondary_section`` and ``score`` (primary score).
+    Secondary fields are ``None`` when no clear second class exists.
     """
-    ranked = score_divisions(text)
+    ranked = score_divisions(text, title=title)
 
     if not ranked:
         primary = DEFAULT_DIVISION
