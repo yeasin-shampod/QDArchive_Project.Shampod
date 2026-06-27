@@ -11,3 +11,7 @@ tests/
 src/
 zenodo_*.py
 restructure.py
+
+# Stray output from the legacy report script (not the Part 2 deliverable
+# 23080363-sq26-classification-report.pdf, which IS tracked).
+/classification_report.pdf
