@@ -187,7 +187,61 @@ The Harvard Murray Research Archive was a much better fit. It holds genuine qual
 Given that both repositories were assigned to me, I chose to scrape broadly and collect everything available rather than attempt to filter by methodology. Even the IHSN documentation has value for qualitative researchers — questionnaires and interview guides reveal how data was collected and what questions were asked, which is useful context regardless of whether the underlying dataset is quantitative. The `query_string` field in the database records which search terms were used for each project.
 
 ---
+## Part 2: Data Classification
 
+Part 2 classifies every seeded project along **two independent dimensions**, exactly as required by the assignment, and writes the results to a dedicated database `23080363-sq26-classification.db` (a copy of the Part 1 database enriched with classification tables).
+
+### Step 1 — Project type
+
+Each project is assigned a `type` (column `PROJECTS.type`) derived purely from the **file extensions** it contains:
+
+| PROJECT_TYPE | Rule |
+|---|---|
+| `QDA_PROJECT` | contains a file with a QDA analysis-data extension (`qdpx`, `mx24`, `nvp`, `atlproj`, …) |
+| `QD_PROJECT` | not a QDA project, but contains primary data files (`pdf`, `docx`, `txt`, `rtf`, audio/video, …) |
+| `OTHER_PROJECT` | not a QD project, but contains other valid data files (`sav`, `dta`, `csv`, `xml`, …) |
+| `NOT_A_PROJECT` | nothing can be derived from the file types |
+
+Our own scraping artifacts (`metadata.json`, `metadata_ddi.xml`) are excluded from this derivation.
+
+### Step 2 — ISIC Rev. 5 classifier
+
+A transparent keyword-scoring classifier maps each project to the official **ISIC Rev. 5** taxonomy, two levels deep (section + division). The authoritative structure is bundled in `classification/isic5_structure.csv` (22 sections, 87 divisions, downloaded from the UN Statistics Division), so histogram bins use the real, full class names.
+
+### Step 3 — Running the classifier
+
+For every `QDA_PROJECT` and `QD_PROJECT` the classifier runs on:
+
+- the **project** as a whole (title + description + keywords) → `PROJECT_CLASSES` (primary & secondary class), and
+- each individual **primary data file** → `FILE_CLASSES`.
+
+### Step 4 — Deliverables
+
+| Deliverable | File |
+|---|---|
+| Classification database (tag `classification-results`) | `23080363-sq26-classification.db` |
+| Result table (Step 4c) | `23080363-sq26-classification.xlsx` |
+| PDF report with per-repository histograms + top-20 tables (Step 4d) | `23080363-sq26-classification-report.pdf` |
+
+The XLSX has the required columns: `repository_id`, `project_type`, `project_title`, `primary_class`, `secondary_class`, `no_project_files`. The PDF is fully vector graphics (matplotlib), one histogram + rank table + comments per repository.
+
+### Running Part 2
+
+```bash
+python run_classification.py        # builds DB + XLSX + PDF in one step
+# or
+python main.py --part2
+```
+
+#### New / changed tables
+
+| Table | Purpose |
+|---|---|
+| `PROJECTS.type` | PROJECT_TYPE per project |
+| `PROJECT_CLASSES` | per-project ISIC primary/secondary class, file count, tags |
+| `FILE_CLASSES` | per-primary-file ISIC class |
+
+---
 ### How to Reproduce
 
 1. Clone this repository
