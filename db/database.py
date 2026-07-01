@@ -129,3 +129,25 @@ def project_exists(conn, repository_id, project_url):
     )
     result = cursor.fetchone()
     return result is not None
+
+
+def get_failed_files(conn):
+    """Return all failed file records joined with their project folders."""
+    cursor = conn.cursor()
+    cursor.execute(
+        """SELECT f.id, f.file_name, f.file_type, f.status,
+                  p.repository_id,
+                  p.download_repository_folder,
+                  p.download_project_folder
+           FROM FILES f
+           JOIN PROJECTS p ON f.project_id = p.id
+           WHERE f.status LIKE 'FAILED_%'"""
+    )
+    return cursor.fetchall()
+
+
+def update_file_status(conn, file_id, status):
+    """Update the download status of a single file."""
+    cursor = conn.cursor()
+    cursor.execute("UPDATE FILES SET status = ? WHERE id = ?", (status, file_id))
+    conn.commit()

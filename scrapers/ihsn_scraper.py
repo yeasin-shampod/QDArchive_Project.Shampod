@@ -29,7 +29,7 @@ def get_catalog_page(page=1, ps=15):
         data = resp.json()
         return data.get("result", {})
     except requests.exceptions.RequestException as e:
-        print(f"[IHSN] Error fetching catalog page offset={offset}: {e}")
+        print(f"[IHSN] Error fetching catalog page={page}: {e}")
         return None
 
 
@@ -430,8 +430,6 @@ def run(max_projects=100):
                 processed += 1
             except Exception as e:
                 print(f"[IHSN] Error processing {entry.get('id')}: {e}")
-                import traceback
-                traceback.print_exc()
                 conn.rollback()
                 continue
 

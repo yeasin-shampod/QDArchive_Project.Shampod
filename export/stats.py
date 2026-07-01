@@ -7,27 +7,43 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from db.database import get_connection
 
+# Repository id -> (display name, data folder name)
+REPOSITORIES = {
+    1: ("IHSN", "ihsn"),
+    2: ("Harvard Murray Archive", "harvard-murray-archive"),
+}
+
+
+def _repo_name(repo_id):
+    return REPOSITORIES.get(repo_id, (f"Repository {repo_id}", str(repo_id)))[0]
+
 
 def print_stats():
     conn = get_connection()
 
-    # Repository counts
-    repos = conn.execute("SELECT * FROM REPOSITORIES").fetchall()
+    # Repository ids actually present in the database
+    repo_ids = [
+        row["repository_id"]
+        for row in conn.execute(
+            "SELECT DISTINCT repository_id FROM PROJECTS ORDER BY repository_id"
+        ).fetchall()
+    ]
+
     print("=" * 60)
     print("QDArchive Seeding - Database Statistics")
     print("=" * 60)
 
-    print(f"\nRepositories: {len(repos)}")
-    for r in repos:
-        print(f"  [{r['id']}] {r['name']} - {r['url']}")
+    print(f"\nRepositories: {len(repo_ids)}")
+    for rid in repo_ids:
+        print(f"  [{rid}] {_repo_name(rid)}")
 
     # Project counts per repo
     print("\nProjects per repository:")
-    for r in repos:
+    for rid in repo_ids:
         count = conn.execute(
-            "SELECT COUNT(*) as c FROM PROJECTS WHERE repository_id = ?", (r["id"],)
+            "SELECT COUNT(*) as c FROM PROJECTS WHERE repository_id = ?", (rid,)
         ).fetchone()["c"]
-        print(f"  {r['name']}: {count}")
+        print(f"  {_repo_name(rid)}: {count}")
 
     total_projects = conn.execute("SELECT COUNT(*) as c FROM PROJECTS").fetchone()["c"]
     print(f"  Total: {total_projects}")
@@ -45,20 +61,20 @@ def print_stats():
 
     # Files per repo
     print("\nFiles per repository:")
-    for r in repos:
+    for rid in repo_ids:
         count = conn.execute(
             """SELECT COUNT(*) as c FROM FILES f 
                JOIN PROJECTS p ON f.project_id = p.id 
                WHERE p.repository_id = ?""",
-            (r["id"],),
+            (rid,),
         ).fetchone()["c"]
         succeeded = conn.execute(
             """SELECT COUNT(*) as c FROM FILES f 
                JOIN PROJECTS p ON f.project_id = p.id 
                WHERE p.repository_id = ? AND f.status = 'SUCCEEDED'""",
-            (r["id"],),
+            (rid,),
         ).fetchone()["c"]
-        print(f"  {r['name']}: {count} total, {succeeded} succeeded")
+        print(f"  {_repo_name(rid)}: {count} total, {succeeded} succeeded")
 
     # Keywords
     kw_count = conn.execute("SELECT COUNT(*) as c FROM KEYWORDS").fetchone()["c"]
@@ -88,8 +104,8 @@ def print_stats():
 
     # Disk usage
     print("\nDisk usage:")
-    for r in repos:
-        folder = os.path.join("data", r["name"])
+    for rid in repo_ids:
+        folder = os.path.join("data", REPOSITORIES.get(rid, ("", str(rid)))[1])
         if os.path.exists(folder):
             total_size = 0
             file_count = 0
@@ -98,7 +114,7 @@ def print_stats():
                     fp = os.path.join(dirpath, fn)
                     total_size += os.path.getsize(fp)
                     file_count += 1
-            print(f"  {r['name']}: {file_count} files, {total_size / (1024*1024):.1f} MB")
+            print(f"  {_repo_name(rid)}: {file_count} files, {total_size / (1024*1024):.1f} MB")
 
     print("=" * 60)
     conn.close()

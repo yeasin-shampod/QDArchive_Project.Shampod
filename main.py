@@ -5,8 +5,6 @@ import argparse
 from db.database import init_db
 from scrapers.ihsn_scraper import run as run_ihsn
 from scrapers.harvard_scraper import run as run_harvard
-from scripts.classify_projects import classify_projects
-from export.classification_report import generate_classification_report
 
 
 def main():
@@ -27,16 +25,6 @@ def main():
         "--init-db-only",
         action="store_true",
         help="Only initialize the database, don't scrape",
-    )
-    parser.add_argument(
-        "--classify",
-        action="store_true",
-        help="Run classification for existing projects after scraping",
-    )
-    parser.add_argument(
-        "--report",
-        action="store_true",
-        help="Generate a classification report after scraping",
     )
     parser.add_argument(
         "--part2",
@@ -70,18 +58,6 @@ def main():
         print("Starting Harvard Murray Archive scraper...")
         print("=" * 60)
         run_harvard(max_projects=args.max_projects)
-
-    if args.classify:
-        print("\n" + "=" * 60)
-        print("Running classification for seeded projects...")
-        print("=" * 60)
-        classify_projects(force=False)
-
-    if args.report:
-        print("\n" + "=" * 60)
-        print("Generating classification report...")
-        print("=" * 60)
-        generate_classification_report()
 
     # Print stats
     print("\n")
